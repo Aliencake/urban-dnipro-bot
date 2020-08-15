@@ -30,13 +30,6 @@ async def new_chat_member(message: types.Message):
             age=datetime.datetime.now() - message.date,
         )
         return False
-    if message.from_user not in message.new_chat_members:
-        return await message.reply(
-            "Вітаємо вас у чаті <b>{chat}</b>\n\n"
-            "Будь ласка, прочитайте правила чату, що вказані у посиланні нижче\n\n"
-            "{link}".format(link=rules_link, chat=message.chat.full_name),
-            disable_web_page_preview=True,
-        )
     users = {}
     for new_member in message.new_chat_members:
         try:

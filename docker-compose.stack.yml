@@ -1,0 +1,47 @@
+version: '3.7'
+
+x-deploy: &base-deploy
+  restart_policy:
+    condition: on-failure
+
+services:
+  bot:
+    command:
+      - run-webhook
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests;assert requests.get('http://localhost:80/healthcheck').status_code == 200"]
+      start_period: 5s
+    environment:
+      RUN_MIGRATIONS: 'true'
+      WEBHOOK_BASE_PATH:
+    networks:
+     - default
+     - web
+    deploy:
+      <<: *base-deploy
+      update_config:
+        parallelism: 2
+        delay: 10s
+        order: start-first
+        failure_action: rollback
+      labels:
+        traefik.enable: true
+        traefik.docker.network: web
+        traefik.http.routers.kapibot-https.entrypoints: web-secure
+        traefik.http.routers.kapibot-https.rule: Host(`${DOMAIN}`) && PathPrefix(`${WEBHOOK_BASE_PATH}`)
+        traefik.http.routers.kapibot-https.service: kapibot
+        traefik.http.routers.kapibot-https.tls: true
+        traefik.http.services.kapibot.loadbalancer.server.port: 80
+
+  redis:
+    networks:
+      - default
+    deploy:
+      <<: *base-deploy
+
+networks:
+  default:
+    driver: overlay
+  web:
+    driver: overlay
+    external: true
